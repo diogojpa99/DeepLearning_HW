@@ -17,6 +17,12 @@ def configure_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
+def softmax(z):
+    '''
+        Softmax function.
+        Implemented by group 40.
+    '''
+    return np.exp(z) / np.sum(np.exp(z))
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
@@ -57,10 +63,9 @@ class Perceptron(LinearModel):
         """
         # Q1.1a
         y_hat = self.predict(x_i)
-        #y_hat = np.argmax(np.dot(self.W, x_i))
-        if y_hat != y_i:
-            self.W[y_i] += x_i
-            self.W[y_hat] -= x_i
+        if y_hat != y_i: 
+            self.W[y_i] += x_i #increase weight of gold class 
+            self.W[y_hat] -= x_i #decrease weight of incorrect class
         #raise NotImplementedError
 
 
@@ -70,9 +75,20 @@ class LogisticRegression(LinearModel):
         x_i (n_features): a single training example
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
-        """
-        # Q1.1b
-        raise NotImplementedError
+        """        
+        # (Init) Reshaping input 
+        x_i = x_i.reshape(np.size(x_i,0),1)
+        # (1) Class scores
+        class_scores = self.W.dot(x_i)
+        # (2) Class probabilities (softmax)
+        class_probs = softmax(class_scores)
+        # (3) One-hot encoding of the output vector
+        y_one_hot = np.zeros((np.size(self.W,0),1))  
+        y_one_hot[y_i] = 1   
+        # (4) SGD update
+        self.W += learning_rate * np.outer((y_one_hot - class_probs), x_i.T)
+        #raise NotImplementedError
+
 
 
 class MLP(object):
@@ -171,7 +187,10 @@ def main():
     # Print the accuracies for the last epoch
     print("Validation set acc. for last epoch:", valid_accs[-1])
     print("Test set acc. for last epoch:", test_accs[-1])
-    
+    # Print the accuracies for the first epoch
+    print("Validation set acc. for first epoch:", valid_accs[0])
+    print("Test set acc. for first epoch:", test_accs[0])
+
     # plot
     plot(epochs, valid_accs, test_accs)
     
