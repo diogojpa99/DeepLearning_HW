@@ -18,10 +18,10 @@ def configure_seed(seed):
     np.random.seed(seed)
 
 def softmax(z):
-    '''
-        Softmax function.
+    """
+            Softmax function.
         Implemented by group 40.
-    '''
+    """
     return np.exp(z) / np.sum(np.exp(z))
 
 class LinearModel(object):
@@ -62,12 +62,12 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         # Q1.1a
+        # (1) Prediction
         y_hat = self.predict(x_i)
+        # (2) Update weigths
         if y_hat != y_i: 
             self.W[y_i] += x_i #increase weight of gold class 
             self.W[y_hat] -= x_i #decrease weight of incorrect class
-        #raise NotImplementedError
-
 
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001):
@@ -76,6 +76,7 @@ class LogisticRegression(LinearModel):
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
         """        
+        # Q1.1b
         # (Init) Reshaping input 
         x_i = x_i.reshape(np.size(x_i,0),1)
         # (1) Class scores
@@ -87,8 +88,6 @@ class LogisticRegression(LinearModel):
         y_one_hot[y_i] = 1   
         # (4) SGD update
         self.W += learning_rate * np.outer((y_one_hot - class_probs), x_i.T)
-        #raise NotImplementedError
-
 
 
 class MLP(object):
