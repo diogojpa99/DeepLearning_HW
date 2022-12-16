@@ -20,9 +20,11 @@ def configure_seed(seed):
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
+        # Weights are initialized at zeros
         self.W = np.zeros((n_classes, n_features))
 
     def update_weight(self, x_i, y_i, **kwargs):
+        # We need to implement 
         raise NotImplementedError
 
     def train_epoch(self, X, y, **kwargs):
@@ -54,7 +56,12 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         # Q1.1a
-        raise NotImplementedError
+        y_hat = self.predict(x_i)
+        #y_hat = np.argmax(np.dot(self.W, x_i))
+        if y_hat != y_i:
+            self.W[y_i] += x_i
+            self.W[y_hat] -= x_i
+        #raise NotImplementedError
 
 
 class LogisticRegression(LinearModel):
@@ -160,8 +167,14 @@ def main():
         valid_accs.append(model.evaluate(dev_X, dev_y))
         test_accs.append(model.evaluate(test_X, test_y))
 
+    # (New)
+    # Print the accuracies for the last epoch
+    print("Validation set acc. for last epoch:", valid_accs[-1])
+    print("Test set acc. for last epoch:", test_accs[-1])
+    
     # plot
     plot(epochs, valid_accs, test_accs)
+    
 
 
 if __name__ == '__main__':
