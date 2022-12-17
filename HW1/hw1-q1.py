@@ -78,7 +78,7 @@ class LogisticRegression(LinearModel):
         learning_rate (float): keep it at the default value for your plots
         """        
         # Q1.1b
-        # (Init) Reshaping input 
+        # (Init) Reshap input 
         x_i = x_i.reshape(np.size(x_i,0),1)
         # (1) Class scores
         class_scores = self.W.dot(x_i)
@@ -95,9 +95,14 @@ class MLP(object):
     # Q3.2b. This MLP skeleton code allows the MLP to be used in place of the
     # linear models with no changes to the training loop or evaluation code
     # in main().
-    def __init__(self, n_classes, n_features, hidden_size):
+    def __init__(self, n_classes, n_features, hidden_size, layers):
         # Initialize an MLP with a single hidden layer.
-        raise NotImplementedError
+        # (1) Initialize bias with zero vectors
+        self.b1 = np.zeros((hidden_size,0))
+        self.b2 = np.zeros((n_classes,0))
+        # (2) Initialize weights matrices with random values
+        self.W1 = np.random.normal(loc=0.1, scale=0.1, size=(hidden_size,n_features))
+        self.W2 = np.random.normal(loc=0.1, scale=0.1, size=(n_classes,n_features))
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
@@ -117,7 +122,12 @@ class MLP(object):
         return n_correct / n_possible
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        raise NotImplementedError
+        for x_i,y_i in zip(X,y):
+            
+            # (Init) Reshape the input:
+            x_i = x_i.reshape(np.size(x_i,0),1)
+            
+
 
 
 def plot(epochs, valid_accs, test_accs):
