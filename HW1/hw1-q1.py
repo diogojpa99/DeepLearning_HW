@@ -68,6 +68,7 @@ class Perceptron(LinearModel):
         if y_hat != y_i: 
             self.W[y_i] += x_i #increase weight of gold class 
             self.W[y_hat] -= x_i #decrease weight of incorrect class
+        
 
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001):
