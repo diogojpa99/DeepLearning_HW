@@ -26,9 +26,11 @@ class LogisticRegression(nn.Module):
         pytorch to make weights and biases, have a look at
         https://pytorch.org/docs/stable/nn.html
         """
-        super().__init__()
         # In a pytorch module, the declarations of layers needs to come after
         # the super __init__ line, otherwise the magic doesn't work.
+        super().__init__()
+        self.linear = nn.Linear(in_features=n_features,out_features=n_classes)
+
 
     def forward(self, x, **kwargs):
         """
@@ -44,8 +46,7 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
-
+        return self.linear(x)
 
 # Q2.2
 class FeedforwardNetwork(nn.Module):
@@ -96,8 +97,20 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    # (1) Clear gradients
+    optimizer.zero_grad()
+    
+    # (2) Forward step
+    y_hat = model(X)
+    loss = criterion(y_hat, y)
 
+    # (3) Backward step
+    loss.backward()
+    
+    # (4) Optimize step
+    optimizer.step()
+    
+    return loss.item()
 
 def predict(model, X):
     """X (n_examples x n_features)"""
@@ -120,11 +133,12 @@ def evaluate(model, X, y):
 
 
 def plot(epochs, plottable, ylabel='', name=''):
-    plt.clf()
+    #plt.clf()
     plt.xlabel('Epoch')
     plt.ylabel(ylabel)
     plt.plot(epochs, plottable)
-    plt.savefig('%s.pdf' % (name), bbox_inches='tight')
+    plt.show()
+    #plt.savefig('%s.pdf' % (name), bbox_inches='tight')
 
 
 def main():
@@ -191,6 +205,7 @@ def main():
     train_mean_losses = []
     valid_accs = []
     train_losses = []
+    print("Learning rate:",opt.learning_rate)
     for ii in epochs:
         print('Training epoch {}'.format(ii))
         for X_batch, y_batch in train_dataloader:
