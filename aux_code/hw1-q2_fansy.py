@@ -68,42 +68,36 @@ class FeedforwardNetwork(nn.Module):
         
         # (1) We need to define the necessary hyperparameters.
         activation_func = {"relu": nn.ReLU(), "tanh": nn.Tanh()}
-        # Define the input size of the hidden layers. 
-        # The first hidden layer has size (n_features, hidden_size).
-        hidden_input_size = n_features
-
-        # (2) We need to create a list that will contain our hidden layers.
-        hidden_layers = []
-
+        
+        # (2) Define our feedfoward network.     
+        self.ff = nn.Sequential()
+        
         # (3) Compose our feedfoward network accordingly with the hyperparameters chosen.
-        # We can have different nº of hidden layers, wich depends on the "layers" hyperparameter. 
-        for _ in range(layers):
+        for n_layers in range(layers):
             # -------------------------------- (I) ------------------------------------------ #
             # We will had the hidden layer to our feedfoward network.
-            hidden_layers.append(nn.Linear(hidden_input_size,hidden_size))
-
+            # We can have different nº of hidden layers, wich depends on the layers hyperparameter. 
+            self.ff.add_module(f'ff{n_layers}', nn.Linear(n_features,hidden_size))
+            
             # ------------------------------- (II) ------------------------------------------ #
             # Then we need to define the activation function at the end of each hidden layer.
             # The activation fucntion depends on the activation type. 
-            hidden_layers.append(activation_func[activation_type])
+            self.ff.add_module(f'activation', activation_func[activation_type])
             
             # ------------------------------- (III) ----------------------------------------- #
             # Then we need to apply dropout to prevent overfitting.
-            hidden_layers.append(nn.Dropout(dropout))
+            self.ff.add_module(f'dropout', nn.Dropout(dropout))
             
             # ------------------------------- (IV) ----------------------------------------- #
             # Only the first hidden layer has dimensions (n_features, hidden_size).
             # All the other hidden layers (2nd and 3rd) will have (hidden_size, hidden_size).
-            # So, after the first iteration (if there is it exists) we will add another hidden_layer, 
+            # So in the next iteration (if there is one) we will add another hidden_layer, but 
             # with the size (hidden,size, hidden_size).
-            hidden_input_size = hidden_size
+            n_features = hidden_size
         
         # -------------------------------- (V) ----------------------------------------- #
         # Add the output layer to our feedfoward network.
-        hidden_layers.append(nn.Linear(hidden_size,n_classes))
-        
-        # (4) Create a Sequence of pytorch models -> Now we have our Feedfoward Network
-        self.ff = nn.Sequential(*hidden_layers)
+        self.ff.add_module(f'classifier',nn.Linear(hidden_size,n_classes))
             
         
     def forward(self, x, **kwargs):
