@@ -15,11 +15,6 @@ import numpy as np
 
 import utils
 
-
-# Configure Device
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-print('Device:', device)
-
 class CNN(nn.Module):
     
     def __init__(self, dropout_prob):
@@ -31,45 +26,13 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        
-        ######### Define our CNN which is comprised by multiple layers ########
-        
-        # (1) First convolutional layer
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size = 2, stride = 2)
-        )
-        
-        # (2) Second convolutional layer
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size = 2, stride = 2)           
-        )
-        
-        # (3) First fully connected layer
-        self.fc1 = nn.Sequential( 
-            nn.Flatten(), #Transforming an 5x5 matrix into a 1D array
-            nn.Linear(in_features = 16*6*6, out_features = 600), # First affine transformation
-            nn.ReLU(), # Activation function
-            nn.Dropout(p = 0.3) # Dropout with p dropout probability
-        )
-            
-        # (4) Second fully connected layer
-        self.fc2 = nn.Sequential(
-            nn.Linear(in_features = 600, out_features = 120), # Second affine transformation 
-            nn.ReLU() # Activation function
-        )
-        
-        # (6) Output layer
-        self.output = nn.Sequential(         
-            nn.Linear(in_features = 120, out_features = 10), # n_classes = 10
-            nn.LogSoftmax(dim = 1) # Output layer with softmax
-        )
-        
-        
-
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=5, padding=2)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=3)
+        self.fc1 = nn.Linear(576, 600)
+        #self.drop = nn.Dropout2d(dropout_prob)
+        self.fc2 = nn.Linear(600, 120)
+        self.fc3 = nn.Linear(120, 10)
+        # Implement me!
         
     def forward(self, x):
         """
@@ -87,21 +50,31 @@ class CNN(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        
-        # (1) Reshape the input image into the correct size
-        # CNN's only receive images (batch_size, n_channels, H, W)
         size = x.shape[0]
-        x = torch.reshape(x,(size,1,x.shape[1]))
+        x = torch.reshape(x,(size,1,784))
         x = torch.reshape(x,(size,1,28,28)) 
-        
-        # (2) Foward pass
-        output = self.conv1(x)
-        output = self.conv2(output)
-        output = self.fc1(output)
-        output = self.fc2(output)
-        output = self.output(output)
 
+        # Não tem problema em trocar a ordem do relu com o maxpooling
+
+        output= F.relu(F.max_pool2d(self.conv1(x), 2))
+
+        output= F.relu(F.max_pool2d(self.conv2(output), 2))
+
+        output= output.view(-1, 576)
+
+        output= F.relu(self.fc1(output))
+
+        #output= self.drop(output)
+        output= F.dropout(output, training=self.training, p=0.3)
+
+        output= F.relu(self.fc2(output))
+
+        output= self.fc3(output)
+
+        output= F.log_softmax(output , dim=1 )
         return output
+
+        raise NotImplementedError
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -121,22 +94,16 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
+    optimizer.zero_grad()          # Setting our stored gradients equal to zero
+    loss = criterion(model(X), y)  
     
-    # (1) Clear gradients
-    optimizer.zero_grad()
+    loss.backward()                # Computes the gradient of the given tensor w.r.t. the weights/bias
     
-    # (2) Forward step
-    y_hat = model(X)
-    loss = criterion(y_hat, y)
-
-    # (3) Backward step
-    loss.backward()
-    
-    # (4) Optimize step
-    optimizer.step()
-    
+    optimizer.step()               # Updates weights and biases with the SGD
     return loss.item()
 
+
+    raise NotImplementedError
 
 def predict(model, X):
     """X (n_examples x n_features)"""
@@ -163,8 +130,7 @@ def plot(epochs, plottable, ylabel='', name=''):
     plt.xlabel('Epoch')
     plt.ylabel(ylabel)
     plt.plot(epochs, plottable)
-    plt.show()
-    #plt.savefig('%s.pdf' % (name), bbox_inches='tight')
+    plt.savefig('%s.pdf' % (name), bbox_inches='tight')
 
 
 activation = {}
@@ -202,12 +168,12 @@ def main():
                         need to change this value for your plots.""")
     parser.add_argument('-batch_size', default=8, type=int,
                         help="Size of training batch.")
-    parser.add_argument('-learning_rate', type=float, default=0.0005,
+    parser.add_argument('-learning_rate', type=float, default=0.01,
                         help="""Learning rate for parameter updates""")
     parser.add_argument('-l2_decay', type=float, default=0)
     parser.add_argument('-dropout', type=float, default=0.8)
-    parser.add_argument('-optimizer', choices=['sgd', 'adam'], default='adam')
-    
+    parser.add_argument('-optimizer',
+                        choices=['sgd', 'adam'], default='adam')
     
     opt = parser.parse_args()
 
@@ -234,14 +200,6 @@ def main():
     # get a loss criterion
     criterion = nn.NLLLoss()
     
-    print("-------------- Model --------------")
-    print("epochs:",opt.epochs)
-    print("Learning_rate:",opt.learning_rate)
-    print("dropout:",opt.dropout)
-    print("batch_size:",opt.batch_size)
-    print("optimizer:",opt.optimizer)
-    print("-----------------------------------")
-    
     # training loop
     epochs = np.arange(1, opt.epochs + 1)
     train_mean_losses = []
@@ -262,14 +220,13 @@ def main():
         print('Valid acc: %.4f' % (valid_accs[-1]))
 
     print('Final Test acc: %.4f' % (evaluate(model, test_X, test_y)))
-    
     # plot
     config = "{}-{}-{}-{}".format(opt.learning_rate, opt.dropout, opt.l2_decay, opt.optimizer)
 
     plot(epochs, train_mean_losses, ylabel='Loss', name='CNN-training-loss-{}'.format(config))
     plot(epochs, valid_accs, ylabel='Accuracy', name='CNN-validation-accuracy-{}'.format(config))
     
-    plot_feature_maps(model, dataset)
+    #plot_feature_maps(model, dataset)
 
 if __name__ == '__main__':
     main()
