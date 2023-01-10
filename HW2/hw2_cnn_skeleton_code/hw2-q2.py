@@ -202,7 +202,7 @@ def main():
                         need to change this value for your plots.""")
     parser.add_argument('-batch_size', default=8, type=int,
                         help="Size of training batch.")
-    parser.add_argument('-learning_rate', type=float, default=0.0005,
+    parser.add_argument('-learning_rate', type=float, default=0.01,
                         help="""Learning rate for parameter updates""")
     parser.add_argument('-l2_decay', type=float, default=0)
     parser.add_argument('-dropout', type=float, default=0.8)
