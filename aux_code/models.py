@@ -134,7 +134,7 @@ class Encoder(nn.Module):
         print("final_fidden shape:", final_hidden.shape)
         
         # (6) Unpack the packed sequences
-        enc_output, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
+        enc_output,_ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
         print("enc_output shape:", enc_output.shape)
         
         return enc_output, final_hidden
@@ -216,6 +216,30 @@ class Decoder(nn.Module):
         # each tensor is (num_layers, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
         # return outputs, dec_state
+        
+                
+        if dec_state[0].shape[0] == 2:
+            dec_state = reshape_state(dec_state)
+        
+        # Embed the target sequences
+        tgt = self.embedding(tgt)
+        
+        # Initialize the outputs and the decoder states
+        outputs = []
+        dec_state = dec_state
+        for i in range(tgt.size(1)):
+            # Pass the current target token and the previous decoder state through the LSTM
+            output, dec_state = self.lstm(tgt[:, i, :], dec_state)
+            
+            if self.attn is not None:
+                output = self.attn(output, encoder_outputs, src_lengths)
+                
+            outputs.append(output)
+        
+        # Stack the outputs along the sequence dimension
+        outputs = torch.stack(outputs, 1)
+        
+        return outputs, dec_state
 
 
 class Seq2Seq(nn.Module):

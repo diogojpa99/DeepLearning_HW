@@ -37,9 +37,12 @@ class Attention(nn.Module):
         # Tip: use torch.masked_fill to do this
         # src_seq_mask: (batch_size, max_src_len)
         # the "~" is the elementwise NOT operator
+        
+        # (1) Define the mask to assign float("-inf") in the attention scores of the padding tokens
         src_seq_mask = ~self.sequence_mask(src_lengths)
+    
         #############################################
-        # TODO: Implement the forward pass of the attention layer
+        # Implement the forward pass of the attention layer
         # Hints:
         # - Use torch.bmm to do the batch matrix multiplication
         #    (it does matrix multiplication for each sample in the batch)
@@ -47,12 +50,32 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
-        raise NotImplementedError
+        
+        # (1) Compute z: results of passing the query matrix through a linear layer
+        z = self.linear_in(query)
+        
+        # (2) Compute the attention scores s
+        s = torch.bmm(z, encoder_outputs.transpose(1, 2))
+        
+        # (3) Apply mask to the attention scores
+        s.masked_fill_(src_seq_mask.unsqueeze(1), float("-inf"))
+
+        # (4) Compute the attention weights p
+        p = torch.softmax(s, dim=-1)
+        
+        # (5) Compute the context vector c
+        c = torch.bmm(p, encoder_outputs)
+    
+        # (6) Linear layer that computes the attention output
+        attn_out = torch.tanh(self.linear_out(torch.cat((query, c), dim=-1)))
+
+        return attn_out
+    
         #############################################
         # END OF YOUR CODE
         #############################################
         # attn_out: (batch_size, 1, hidden_size)
-        # TODO: Uncomment the following line when you implement the forward pass
+        # Uncomment the following line when you implement the forward pass
         # return attn_out
 
     def sequence_mask(self, lengths):
@@ -118,7 +141,8 @@ class Encoder(nn.Module):
             embed_src = self.dropout(embed_src)
         
         # (3) Pack the padded sequences
-        packed_src = torch.nn.utils.rnn.pack_padded_sequence(embed_src, lengths.cpu(), batch_first=True, enforce_sorted= False)
+        packed_src = torch.nn.utils.rnn.pack_padded_sequence(embed_src, lengths.cpu(), 
+                                                             batch_first=True, enforce_sorted= False)
         
         # (4) Pass the packed sequences through the bidirectional LSTM
         packed_output, final_hidden = self.lstm(packed_src)
@@ -170,25 +194,26 @@ class Decoder(nn.Module):
         self.attn = attn
 
     def forward(
-        self,
-        tgt,
-        dec_state,
-        encoder_outputs,
+        self, 
+        tgt, 
+        dec_state, 
+        encoder_outputs, 
         src_lengths,
     ):
-        '''# tgt: (batch_size, max_tgt_len)
+        # tgt: (batch_size, max_tgt_len)
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
         # encoder_outputs: (batch_size, max_src_len, hidden_size)
         # src_lengths: (batch_size)
-        # bidirectional encoder outputs are concatenated, so we may need to
+        
+        # (1) Bidirectional Encoder outputs are concatenated, so we may need to
         # reshape the decoder states to be of size (num_layers, batch_size, 2*hidden_size)
         # if they are of size (num_layers*num_directions, batch_size, hidden_size)
         if dec_state[0].shape[0] == 2:
             dec_state = reshape_state(dec_state)
 
         #############################################
-        # TODO: Implement the forward pass of the decoder
+        # Implement the forward pass of the decoder
         # Hints:
         # - the input to the decoder is the previous target token,
         #   and the output is the next target token
@@ -202,38 +227,35 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        raise NotImplementedError
+        
+        # (2) Embed the target sequences
+        embed_tgt = self.embedding(tgt)
+
+        # (3) Apply dropout after embedding
+        if self.training:
+            embed_tgt = self.dropout(embed_tgt)
+
+        # (4) Pass the embedded target sequences through the LSTM
+        outputs, dec_state = self.lstm(embed_tgt, dec_state)
+        
+        # (5) Apply dropout on the LSTM outputs
+        if self.training:
+            outputs = self.dropout(outputs)
+            outputs = outputs[:, :-1, :] # removing the end-of-sentence token.
+            
+        # (6) Adding of attention mechanism
+        if self.attn is not None:
+            outputs = self.attn(outputs, encoder_outputs, src_lengths)
+        
+        return outputs, dec_state
+    
         #############################################
         # END OF YOUR CODE
         #############################################
         # outputs: (batch_size, max_tgt_len, hidden_size)
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
-        # TODO: Uncomment the following line when you implement the forward pass
-        # return outputs, dec_state'''
-
-        if dec_state[0].shape[0] == 2:
-            dec_state = reshape_state(dec_state)
-        
-        # Embed the target sequences
-        tgt = self.embedding(tgt)
-        
-        # Initialize the outputs and the decoder states
-        outputs = []
-        dec_state = dec_state
-        for i in range(tgt.size(1)):
-            # Pass the current target token and the previous decoder state through the LSTM
-            output, dec_state = self.lstm(tgt[:, i, :], dec_state)
-            
-            if self.attn is not None:
-                output = self.attn(output, encoder_outputs, src_lengths)
-                
-            outputs.append(output)
-        
-        # Stack the outputs along the sequence dimension
-        outputs = torch.stack(outputs, 1)
-        
-        return outputs, dec
+        # return outputs, dec_state
 
 
 

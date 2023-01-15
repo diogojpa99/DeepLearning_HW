@@ -47,7 +47,7 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size = 2, stride = 2)           
         )
         
-        # (3) First fully connected layer
+        # (3) First fully connected block
         self.fc1 = nn.Sequential( 
             nn.Flatten(), #Transforming an 6x6 matrix into a 1D array
             nn.Linear(in_features = 16*6*6, out_features = 600), # First affine transformation
@@ -58,7 +58,7 @@ class CNN(nn.Module):
         # (I) Dropout with p dropout probability
         self.dropout = nn.Dropout(p = 0.3) 
             
-        # (4) Second fully connected layer
+        # (4) Second fully connected block
         self.fc2 = nn.Sequential(
             nn.Linear(in_features = 600, out_features = 120), # Second affine transformation 
             nn.ReLU() # Activation function
@@ -70,8 +70,6 @@ class CNN(nn.Module):
             nn.LogSoftmax(dim = 1) # Output layer with softmax
         )
         
-        
-
         
     def forward(self, x):
         """
@@ -202,7 +200,10 @@ def plot_feature_maps(model, train_dataset):
     output = model(data)
 
     plt.imshow(data.reshape(28,-1)) 
-    plt.savefig('original_image.pdf')
+    plt.show()
+    #plt.savefig('original_image.pdf')
+    
+    plt.clf()
 
     k=0
     act = activation['conv1'].squeeze()
@@ -211,8 +212,10 @@ def plot_feature_maps(model, train_dataset):
     for i in range(act.size(0)//3):
         for j in range(act.size(0)//2):
             ax[i,j].imshow(act[k].detach().cpu().numpy())
-            k+=1  
-            plt.savefig('activation_maps.pdf') 
+            k+=1 
+            #plt.savefig('activation_maps.pdf') 
+            
+    plt.show()
 
 
 def main():

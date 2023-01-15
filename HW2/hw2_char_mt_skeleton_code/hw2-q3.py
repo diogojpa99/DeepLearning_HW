@@ -91,6 +91,7 @@ def test(model, data_iter, data_type, examples_idx=None):
     pred_strs = []
 
     with torch.no_grad():
+        
         for jj, (src, tgt) in enumerate(data_iter):
             src_lengths = (src != PAD_IDX).sum(1)
             src, tgt = src.to(device), tgt.to(device)
@@ -255,10 +256,11 @@ def main():
     plt.xlabel("Epochs")
     plt.ylabel("Error Rate")
     plt.legend()
-    plt.savefig(
+    plt.show()
+    '''plt.savefig(
         "attn_%s_err_rate.pdf" % (str(opt.use_attn),),
         bbox_inches="tight",
-    )
+    )'''
 
 
 if __name__ == "__main__":
